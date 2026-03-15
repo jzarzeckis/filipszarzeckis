@@ -2,6 +2,7 @@ import { MazeCanvas } from "./MazeCanvas";
 import { Router, Link, usePath } from "./router";
 import { About } from "./pages/About";
 import { Projects } from "./pages/Projects";
+import { Button } from "@/components/ui/button";
 
 function HomePage() {
   return (
@@ -20,18 +21,6 @@ function HomePage() {
           gap: "1.5rem",
         }}
       >
-        <h1
-          style={{
-            color: "#fff",
-            fontSize: "clamp(2rem, 6vw, 4rem)",
-            fontWeight: 700,
-            letterSpacing: "-0.02em",
-            textShadow: "0 2px 20px rgba(0,0,0,0.8)",
-            margin: 0,
-          }}
-        >
-          Filip Szarzeckis
-        </h1>
         <nav
           style={{
             display: "flex",
@@ -39,18 +28,12 @@ function HomePage() {
             pointerEvents: "auto",
           }}
         >
-          <Link
-            to="/about"
-            className="text-white/70 hover:text-white transition-colors text-lg tracking-wide"
-          >
-            About
-          </Link>
-          <Link
-            to="/projects"
-            className="text-white/70 hover:text-white transition-colors text-lg tracking-wide"
-          >
-            Projects
-          </Link>
+          <Button variant="link" asChild size="lg" className="text-white/80 hover:text-white text-lg tracking-wide">
+            <Link to="/about">About</Link>
+          </Button>
+          <Button variant="link" asChild size="lg" className="text-white/80 hover:text-white text-lg tracking-wide">
+            <Link to="/projects">Projects</Link>
+          </Button>
         </nav>
       </div>
     </>
