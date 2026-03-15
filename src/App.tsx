@@ -24,14 +24,14 @@ function HomePage() {
         <nav
           style={{
             display: "flex",
-            gap: "2rem",
+            gap: "1rem",
             pointerEvents: "auto",
           }}
         >
-          <Button variant="link" asChild size="lg" className="text-white/80 hover:text-white text-lg tracking-wide">
+          <Button asChild size="lg" className="bg-black/70 hover:bg-black/90 text-white border border-white/20 backdrop-blur-sm text-lg tracking-wide">
             <Link to="/about">About</Link>
           </Button>
-          <Button variant="link" asChild size="lg" className="text-white/80 hover:text-white text-lg tracking-wide">
+          <Button asChild size="lg" className="bg-black/70 hover:bg-black/90 text-white border border-white/20 backdrop-blur-sm text-lg tracking-wide">
             <Link to="/projects">Projects</Link>
           </Button>
         </nav>
