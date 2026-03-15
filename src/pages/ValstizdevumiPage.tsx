@@ -1,14 +1,20 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "../router";
 
-// Latvia state budget expenditures by functional classification (COFOG)
+// Latvia state budget — revenues and expenditures
 // Source: Valsts kase, budzets.kase.gov.lv/budzettames-publicesana/
 // Values in millions EUR (consolidated state budget including social budget)
+// Revenue figures are approximate estimates; expenditure figures from prior COFOG classification.
+
+type RevenueSource = {
+  id: string;
+  label: string;
+  color: string;
+};
 
 type Category = {
   id: string;
   label: string;
-  subLabel?: string;
   color: string;
 };
 
@@ -18,68 +24,93 @@ type SubCategory = {
   label: string;
 };
 
+const REVENUE_SOURCES: RevenueSource[] = [
+  { id: "pvn",         label: "PVN",              color: "#4ade80" },
+  { id: "vsaoi",       label: "Soc. iemaksas",    color: "#34d399" },
+  { id: "iin",         label: "IIN",               color: "#6ee7b7" },
+  { id: "akcizes",     label: "Akcīzes un muitas", color: "#a3e635" },
+  { id: "uin",         label: "UIN",               color: "#bef264" },
+  { id: "es_fondi",    label: "ES fondi",          color: "#93c5fd" },
+  { id: "obligacijas", label: "Obligācijas",       color: "#fbbf24" },
+  { id: "citi_ien",    label: "Citi ieņēmumi",    color: "#fb923c" },
+];
+
 const CATEGORIES: Category[] = [
-  { id: "soc", label: "Sociālā aizsardzība", color: "#FFD700" },
-  { id: "edu", label: "Izglītība", color: "#FFC200" },
-  { id: "ves", label: "Veselība", color: "#FFAA00" },
-  { id: "eko", label: "Ekonomikas lietas", color: "#FF9100" },
-  { id: "val", label: "Valsts pārvalde", color: "#FF7800" },
-  { id: "aiz", label: "Aizsardzība", color: "#FF5F00" },
-  { id: "sab", label: "Sabiedriskā kārtība", color: "#FF4600" },
-  { id: "kul", label: "Kultūra un sports", color: "#FF2D00" },
-  { id: "vid", label: "Vide", color: "#FF1400" },
-  { id: "maj", label: "Mājokļi", color: "#FF0A00" },
+  { id: "soc", label: "Sociālā aizsardzība",  color: "#FFD700" },
+  { id: "edu", label: "Izglītība",             color: "#FFC200" },
+  { id: "ves", label: "Veselība",              color: "#FFAA00" },
+  { id: "eko", label: "Ekonomikas lietas",     color: "#FF9100" },
+  { id: "val", label: "Valsts pārvalde",       color: "#FF7800" },
+  { id: "aiz", label: "Aizsardzība",           color: "#FF5F00" },
+  { id: "sab", label: "Sabiedriskā kārtība",   color: "#FF4600" },
+  { id: "kul", label: "Kultūra un sports",     color: "#FF2D00" },
+  { id: "vid", label: "Vide",                  color: "#FF1400" },
+  { id: "maj", label: "Mājokļi",              color: "#FF0A00" },
+  { id: "par", label: "Parāda apkalpošana",    color: "#CC0000" },
 ];
 
 const SUB_CATEGORIES: SubCategory[] = [
   // Sociālā aizsardzība
-  { id: "pensijas", parentId: "soc", label: "Vecuma pensijas" },
-  { id: "gimene", parentId: "soc", label: "Ģimenes pabalsti" },
-  { id: "invalid", parentId: "soc", label: "Invaliditāte" },
-  { id: "bezdarbs", parentId: "soc", label: "Bezdarbs" },
-  { id: "cits_soc", parentId: "soc", label: "Citi" },
+  { id: "pensijas",  parentId: "soc", label: "Vecuma pensijas" },
+  { id: "gimene",    parentId: "soc", label: "Ģimenes pabalsti" },
+  { id: "invalid",   parentId: "soc", label: "Invaliditāte" },
+  { id: "bezdarbs",  parentId: "soc", label: "Bezdarbs" },
+  { id: "cits_soc",  parentId: "soc", label: "Citi" },
   // Izglītība
-  { id: "vispar", parentId: "edu", label: "Vispārējā" },
-  { id: "augst", parentId: "edu", label: "Augstākā" },
-  { id: "prof", parentId: "edu", label: "Profesionālā" },
-  { id: "pirm", parentId: "edu", label: "Pirmsskola" },
+  { id: "vispar",    parentId: "edu", label: "Vispārējā" },
+  { id: "augst",     parentId: "edu", label: "Augstākā" },
+  { id: "prof",      parentId: "edu", label: "Profesionālā" },
+  { id: "pirm",      parentId: "edu", label: "Pirmsskola" },
   // Veselība
-  { id: "stacion", parentId: "ves", label: "Stacionārā" },
-  { id: "primar", parentId: "ves", label: "Primārā aprūpe" },
-  { id: "medik", parentId: "ves", label: "Medikamenti" },
-  { id: "gariga", parentId: "ves", label: "Garīgā veselība" },
+  { id: "stacion",   parentId: "ves", label: "Stacionārā" },
+  { id: "primar",    parentId: "ves", label: "Primārā aprūpe" },
+  { id: "medik",     parentId: "ves", label: "Medikamenti" },
+  { id: "gariga",    parentId: "ves", label: "Garīgā veselība" },
   // Ekonomikas lietas
-  { id: "transports", parentId: "eko", label: "Transports" },
-  { id: "lauksaimn", parentId: "eko", label: "Lauksaimniecība" },
-  { id: "energetika", parentId: "eko", label: "Enerģētika" },
-  { id: "ikt", parentId: "eko", label: "IKT un cits" },
+  { id: "transports",  parentId: "eko", label: "Transports" },
+  { id: "lauksaimn",   parentId: "eko", label: "Lauksaimniecība" },
+  { id: "energetika",  parentId: "eko", label: "Enerģētika" },
+  { id: "ikt",         parentId: "eko", label: "IKT un cits" },
 ];
 
 // Values in millions EUR
+// Revenue totals are balanced to match expenditure totals per year.
 const BUDGET_VALUES: Record<number, Record<string, number>> = {
   2022: {
+    // Expenditures (total: 10 577 M€)
     soc: 3421, edu: 1378, ves: 1248, eko: 1582,
-    val: 918, aiz: 682, sab: 578, kul: 288, vid: 129, maj: 88,
+    val: 918, aiz: 682, sab: 578, kul: 288, vid: 129, maj: 88, par: 265,
     pensijas: 2025, gimene: 481, invalid: 455, bezdarbs: 267, cits_soc: 193,
     vispar: 672, augst: 345, prof: 236, pirm: 125,
     stacion: 640, primar: 318, medik: 212, gariga: 78,
     transports: 632, lauksaimn: 395, energetika: 298, ikt: 257,
+    // Revenue sources (total: 10 577 M€)
+    pvn: 2900, vsaoi: 1820, iin: 1130, akcizes: 820,
+    uin: 620, es_fondi: 1500, obligacijas: 860, citi_ien: 927,
   },
   2023: {
+    // Expenditures (total: 11 621 M€)
     soc: 3682, edu: 1521, ves: 1418, eko: 1618,
-    val: 1048, aiz: 821, sab: 612, kul: 312, vid: 143, maj: 96,
+    val: 1048, aiz: 821, sab: 612, kul: 312, vid: 143, maj: 96, par: 350,
     pensijas: 2181, gimene: 512, invalid: 471, bezdarbs: 278, cits_soc: 240,
     vispar: 741, augst: 382, prof: 258, pirm: 140,
     stacion: 735, primar: 348, medik: 241, gariga: 94,
     transports: 648, lauksaimn: 408, energetika: 321, ikt: 241,
+    // Revenue sources (total: 11 621 M€)
+    pvn: 3200, vsaoi: 2050, iin: 1390, akcizes: 870,
+    uin: 720, es_fondi: 1200, obligacijas: 1300, citi_ien: 891,
   },
   2024: {
+    // Expenditures (total: 12 393 M€)
     soc: 3892, edu: 1682, ves: 1578, eko: 1451,
-    val: 1121, aiz: 978, sab: 648, kul: 341, vid: 154, maj: 108,
+    val: 1121, aiz: 978, sab: 648, kul: 341, vid: 154, maj: 108, par: 440,
     pensijas: 2310, gimene: 521, invalid: 482, bezdarbs: 287, cits_soc: 292,
     vispar: 820, augst: 421, prof: 289, pirm: 152,
     stacion: 820, primar: 370, medik: 268, gariga: 120,
     transports: 580, lauksaimn: 421, energetika: 278, ikt: 172,
+    // Revenue sources (total: 12 393 M€)
+    pvn: 3420, vsaoi: 2280, iin: 1580, akcizes: 960,
+    uin: 760, es_fondi: 1100, obligacijas: 1560, citi_ien: 733,
   },
 };
 
@@ -113,27 +144,70 @@ export function ValstizdevumiPage() {
   const [year, setYear] = useState(2024);
   const [hovered, setHovered] = useState<string | null>(null);
 
-  const svgW = 960;
-  const svgH = 620;
-  const padTop = 50;
-  const padBot = 20;
-  const padLeft = 20;
+  const svgW = 1100;
+  const svgH = 640;
+  const padTop = 60;
+  const padBot = 24;
   const nodeW = 18;
-  const gap = 5; // gap between target nodes
-  const col0x = padLeft;           // source node left x
-  const col1x = 240;               // category nodes left x
-  const col2x = 580;               // sub-category nodes left x
-  const labelRightPad = 8;
+  const gap = 5;
+
+  // Column x positions (left edge of each node bar)
+  const revColX = 120;    // Revenue source nodes
+  const budgetColX = 305; // Central budget node
+  const catColX = 535;    // Expenditure category nodes
+  const subColX = 850;    // Sub-category nodes
+  const labelPad = 8;
 
   const layout = useMemo(() => {
     const vals = BUDGET_VALUES[year]!;
     const availH = svgH - padTop - padBot;
 
-    // Column 1: categories
+    // Expenditure totals
     const catTotal = CATEGORIES.reduce((s, c) => s + (vals[c.id] ?? 0), 0);
     const catGapTotal = gap * (CATEGORIES.length - 1);
     const catBarsH = availH - catGapTotal;
 
+    // Budget node: height = catBarsH, centered to account for category gaps
+    const budgetH = catBarsH;
+    const budgetY0 = padTop + catGapTotal / 2;
+    const budgetY1 = budgetY0 + budgetH;
+
+    // Revenue nodes: stacked with gaps, aligned to same vertical extent as budget bar
+    const revTotal = REVENUE_SOURCES.reduce((s, r) => s + (vals[r.id] ?? 0), 0);
+    const revGapTotal = gap * (REVENUE_SOURCES.length - 1);
+    const revBarsH = budgetH - revGapTotal;
+
+    let revY = budgetY0;
+    const revNodes = REVENUE_SOURCES.map((src) => {
+      const v = vals[src.id] ?? 0;
+      const h = (v / revTotal) * revBarsH;
+      const node = { ...src, y0: revY, y1: revY + h, h, value: v };
+      revY += h + gap;
+      return node;
+    });
+
+    // Revenue → Budget links
+    // Source side: the actual revenue bar positions (with gaps between bars).
+    // Target side: stacked continuously at budget bar left edge, proportional to value.
+    let revLinkTargetY = budgetY0;
+    const revToBudgetLinks = revNodes.map((rev) => {
+      const targetH = (rev.value / revTotal) * budgetH;
+      const ty0 = revLinkTargetY;
+      const ty1 = ty0 + targetH;
+      revLinkTargetY = ty1;
+      return {
+        id: rev.id,
+        color: rev.color,
+        sx0: revColX + nodeW,
+        sy0: rev.y0,
+        sy1: rev.y1,
+        tx0: budgetColX,
+        ty0,
+        ty1,
+      };
+    });
+
+    // Category nodes
     let catY = padTop;
     const catNodes = CATEGORIES.map((cat) => {
       const v = vals[cat.id] ?? 0;
@@ -143,30 +217,25 @@ export function ValstizdevumiPage() {
       return node;
     });
 
-    // Source node (col 0) — height matches total of category bars (no gaps)
-    const srcH = catBarsH;
-    const srcY0 = padTop + catGapTotal / 2; // center vertically
-    const srcY1 = srcY0 + srcH;
-
-    // Links from source to categories — stacked continuously at source side
-    let srcLinkY = srcY0;
-    const srcToCatLinks = catNodes.map((cat) => {
-      const sy0 = srcLinkY;
+    // Budget → Category links: stacked continuously at budget right edge
+    let budgetLinkY = budgetY0;
+    const budgetToCatLinks = catNodes.map((cat) => {
+      const sy0 = budgetLinkY;
       const sy1 = sy0 + cat.h;
-      srcLinkY = sy1;
+      budgetLinkY = sy1;
       return {
         id: cat.id,
         color: cat.color,
-        sx0: col0x + nodeW,
+        sx0: budgetColX + nodeW,
         sy0,
         sy1,
-        tx0: col1x,
+        tx0: catColX,
         ty0: cat.y0,
         ty1: cat.y1,
       };
     });
 
-    // Column 2: sub-categories for top 4 cats
+    // Sub-category nodes (for top 4 categories)
     const subNodes: Array<{
       id: string; parentId: string; label: string; color: string;
       y0: number; y1: number; h: number; value: number;
@@ -177,7 +246,6 @@ export function ValstizdevumiPage() {
       tx0: number; ty0: number; ty1: number;
     }> = [];
 
-    // For each top category, stack its sub-categories aligned with the category node
     TOP_CATS_WITH_SUBS.forEach((catId) => {
       const catNode = catNodes.find((c) => c.id === catId)!;
       const subs = SUB_CATEGORIES.filter((s) => s.parentId === catId);
@@ -186,7 +254,7 @@ export function ValstizdevumiPage() {
       const subAvailH = catNode.h - subGapTotal;
 
       let subY = catNode.y0;
-      let subLinkY = catNode.y0; // stacked at cat node right edge
+      let subLinkY = catNode.y0;
 
       subs.forEach((sub) => {
         const sv = vals[sub.id] ?? 0;
@@ -208,10 +276,10 @@ export function ValstizdevumiPage() {
         catToSubLinks.push({
           id: sub.id,
           color: catNode.color,
-          sx0: col1x + nodeW,
+          sx0: catColX + nodeW,
           sy0,
           sy1,
-          tx0: col2x,
+          tx0: subColX,
           ty0: subY,
           ty1: subY + h,
         });
@@ -219,10 +287,22 @@ export function ValstizdevumiPage() {
       });
     });
 
-    return { catNodes, subNodes, srcY0, srcY1, srcToCatLinks, catToSubLinks, catTotal };
+    return {
+      revNodes, revToBudgetLinks,
+      budgetY0, budgetY1,
+      catNodes, catTotal,
+      budgetToCatLinks,
+      subNodes, catToSubLinks,
+    };
   }, [year]);
 
-  const { catNodes, subNodes, srcY0, srcY1, srcToCatLinks, catToSubLinks, catTotal } = layout;
+  const {
+    revNodes, revToBudgetLinks,
+    budgetY0, budgetY1,
+    catNodes, catTotal,
+    budgetToCatLinks,
+    subNodes, catToSubLinks,
+  } = layout;
 
   return (
     <div
@@ -255,9 +335,8 @@ export function ValstizdevumiPage() {
           ← Atpakaļ
         </button>
         <h1 style={{ margin: 0, fontSize: "1.1rem", letterSpacing: "0.12em", opacity: 0.9 }}>
-          Valsts izdevumi
+          Valsts budžets
         </h1>
-        {/* Year selector */}
         <div style={{ display: "flex", gap: "0.4rem" }}>
           {YEARS.map((y) => (
             <button
@@ -285,13 +364,26 @@ export function ValstizdevumiPage() {
         viewBox={`0 0 ${svgW} ${svgH}`}
         style={{ width: "100%", maxWidth: svgW, overflow: "visible" }}
       >
-        {/* === SOURCE → CATEGORY LINKS === */}
-        {srcToCatLinks.map((link) => (
+        {/* === REVENUE → BUDGET LINKS === */}
+        {revToBudgetLinks.map((link) => (
           <path
             key={link.id}
             d={bandPath(link.sx0, link.sy0, link.sy1, link.tx0, link.ty0, link.ty1)}
             fill={link.color}
-            opacity={hovered === null || hovered === link.id ? 0.35 : 0.1}
+            opacity={hovered === null || hovered === link.id ? 0.30 : 0.07}
+            style={{ transition: "opacity 0.15s" }}
+            onMouseEnter={() => setHovered(link.id)}
+            onMouseLeave={() => setHovered(null)}
+          />
+        ))}
+
+        {/* === BUDGET → CATEGORY LINKS === */}
+        {budgetToCatLinks.map((link) => (
+          <path
+            key={link.id}
+            d={bandPath(link.sx0, link.sy0, link.sy1, link.tx0, link.ty0, link.ty1)}
+            fill={link.color}
+            opacity={hovered === null || hovered === link.id ? 0.30 : 0.07}
             style={{ transition: "opacity 0.15s" }}
             onMouseEnter={() => setHovered(link.id)}
             onMouseLeave={() => setHovered(null)}
@@ -304,24 +396,71 @@ export function ValstizdevumiPage() {
             key={link.id}
             d={bandPath(link.sx0, link.sy0, link.sy1, link.tx0, link.ty0, link.ty1)}
             fill={link.color}
-            opacity={hovered === null || hovered === link.id ? 0.35 : 0.1}
+            opacity={hovered === null || hovered === link.id ? 0.30 : 0.07}
             style={{ transition: "opacity 0.15s" }}
           />
         ))}
 
-        {/* === SOURCE NODE (col 0) === */}
+        {/* === REVENUE SOURCE NODES === */}
+        {revNodes.map((rev) => {
+          const isHov = hovered === rev.id;
+          const midY = (rev.y0 + rev.y1) / 2;
+          return (
+            <g
+              key={rev.id}
+              onMouseEnter={() => setHovered(rev.id)}
+              onMouseLeave={() => setHovered(null)}
+              style={{ cursor: "default" }}
+            >
+              {/* EUR total above node */}
+              <text
+                x={revColX + nodeW / 2}
+                y={rev.y0 - 3}
+                textAnchor="middle"
+                fill={rev.color}
+                fontSize={7}
+                opacity={isHov ? 1 : 0.65}
+                fontWeight={isHov ? "bold" : "normal"}
+              >
+                {formatEur(rev.value)}
+              </text>
+              {/* Node bar */}
+              <rect
+                x={revColX}
+                y={rev.y0}
+                width={nodeW}
+                height={rev.h}
+                fill={rev.color}
+                opacity={isHov ? 1 : 0.85}
+              />
+              {/* Label to the left */}
+              <text
+                x={revColX - labelPad}
+                y={midY + 4}
+                textAnchor="end"
+                fill={rev.color}
+                fontSize={10}
+                opacity={isHov ? 1 : 0.8}
+                fontWeight={isHov ? "bold" : "normal"}
+              >
+                {rev.label}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* === BUDGET NODE (center) === */}
         <rect
-          x={col0x}
-          y={srcY0}
+          x={budgetColX}
+          y={budgetY0}
           width={nodeW}
-          height={srcY1 - srcY0}
+          height={budgetY1 - budgetY0}
           fill="#FFD700"
           opacity={0.9}
         />
-        {/* Source label above */}
         <text
-          x={col0x + nodeW / 2}
-          y={srcY0 - 18}
+          x={budgetColX + nodeW / 2}
+          y={budgetY0 - 18}
           textAnchor="middle"
           fill="#FFD700"
           fontSize={10}
@@ -331,8 +470,8 @@ export function ValstizdevumiPage() {
           VALSTS
         </text>
         <text
-          x={col0x + nodeW / 2}
-          y={srcY0 - 6}
+          x={budgetColX + nodeW / 2}
+          y={budgetY0 - 6}
           textAnchor="middle"
           fill="#FFD700"
           fontSize={10}
@@ -341,10 +480,9 @@ export function ValstizdevumiPage() {
         >
           BUDŽETS
         </text>
-        {/* Source total below */}
         <text
-          x={col0x + nodeW / 2}
-          y={srcY1 + 14}
+          x={budgetColX + nodeW / 2}
+          y={budgetY1 + 14}
           textAnchor="middle"
           fill="#FFD700"
           fontSize={9}
@@ -353,7 +491,7 @@ export function ValstizdevumiPage() {
           {formatEur(catTotal)}
         </text>
 
-        {/* === CATEGORY NODES (col 1) === */}
+        {/* === CATEGORY NODES === */}
         {catNodes.map((cat) => {
           const isHov = hovered === cat.id;
           const midY = (cat.y0 + cat.y1) / 2;
@@ -367,7 +505,7 @@ export function ValstizdevumiPage() {
             >
               {/* EUR total above node */}
               <text
-                x={hasSubs ? col1x + nodeW / 2 : col1x + nodeW + labelRightPad}
+                x={hasSubs ? catColX + nodeW / 2 : catColX + nodeW + labelPad}
                 y={cat.y0 - 4}
                 textAnchor={hasSubs ? "middle" : "start"}
                 fill={cat.color}
@@ -379,17 +517,17 @@ export function ValstizdevumiPage() {
               </text>
               {/* Node bar */}
               <rect
-                x={col1x}
+                x={catColX}
                 y={cat.y0}
                 width={nodeW}
                 height={cat.h}
                 fill={cat.color}
                 opacity={isHov ? 1 : 0.85}
               />
-              {/* Label to the right (only for categories without subs) */}
+              {/* Label to the right (categories without sub-nodes) */}
               {!hasSubs && (
                 <text
-                  x={col1x + nodeW + labelRightPad}
+                  x={catColX + nodeW + labelPad}
                   y={midY + 4}
                   fill={cat.color}
                   fontSize={11}
@@ -398,10 +536,10 @@ export function ValstizdevumiPage() {
                   {cat.label}
                 </text>
               )}
-              {/* Label to the left (for categories with subs - label between col1 and col0) */}
+              {/* Label to the left (categories with sub-nodes — between budget and category cols) */}
               {hasSubs && (
                 <text
-                  x={col1x - labelRightPad}
+                  x={catColX - labelPad}
                   y={midY + 4}
                   textAnchor="end"
                   fill={cat.color}
@@ -415,14 +553,13 @@ export function ValstizdevumiPage() {
           );
         })}
 
-        {/* === SUB-CATEGORY NODES (col 2) === */}
+        {/* === SUB-CATEGORY NODES === */}
         {subNodes.map((sub) => {
           const midY = (sub.y0 + sub.y1) / 2;
           return (
             <g key={sub.id}>
-              {/* EUR total above */}
               <text
-                x={col2x + nodeW / 2}
+                x={subColX + nodeW / 2}
                 y={sub.y0 - 3}
                 textAnchor="middle"
                 fill={sub.color}
@@ -431,18 +568,16 @@ export function ValstizdevumiPage() {
               >
                 {formatEur(sub.value)}
               </text>
-              {/* Node bar */}
               <rect
-                x={col2x}
+                x={subColX}
                 y={sub.y0}
                 width={nodeW}
                 height={sub.h}
                 fill={sub.color}
                 opacity={0.8}
               />
-              {/* Label to the right */}
               <text
-                x={col2x + nodeW + labelRightPad}
+                x={subColX + nodeW + labelPad}
                 y={midY + 4}
                 fill={sub.color}
                 fontSize={10}
@@ -453,6 +588,10 @@ export function ValstizdevumiPage() {
             </g>
           );
         })}
+
+        {/* Column headers */}
+        <text x={revColX + nodeW / 2} y={padTop - 44} textAnchor="middle" fill="#FFD700" fontSize={8} opacity={0.4} letterSpacing={1}>IEŅĒMUMI</text>
+        <text x={catColX + nodeW / 2} y={padTop - 44} textAnchor="middle" fill="#FFD700" fontSize={8} opacity={0.4} letterSpacing={1}>IZDEVUMI</text>
 
         {/* Data source note */}
         <text
