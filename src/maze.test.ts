@@ -35,10 +35,10 @@ function generateMaze(width: number, height: number): Uint8Array {
       if (inMaze[i1]) {
         while (previous[i1] !== i1) {
           i0 = previous[i1]!;
-          if (i1 === i0 + 1)      { cells[i0] |= E; cells[i1] |= W; }
-          else if (i1 === i0 - 1) { cells[i0] |= W; cells[i1] |= E; }
-          else if (i1 === i0 + width) { cells[i0] |= S; cells[i1] |= N; }
-          else                    { cells[i0] |= N; cells[i1] |= S; }
+          if (i1 === i0 + 1)      { cells[i0] = cells[i0]! | E; cells[i1] = cells[i1]! | W; }
+          else if (i1 === i0 - 1) { cells[i0] = cells[i0]! | W; cells[i1] = cells[i1]! | E; }
+          else if (i1 === i0 + width) { cells[i0] = cells[i0]! | S; cells[i1] = cells[i1]! | N; }
+          else                    { cells[i0] = cells[i0]! | N; cells[i1] = cells[i1]! | S; }
           inMaze[i1] = 1; previous[i1] = -1; i1 = i0;
         }
         inMaze[i1] = 1; previous[i1] = -1;
