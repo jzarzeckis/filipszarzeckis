@@ -64,6 +64,19 @@ Uses [shadcn/ui](https://ui.shadcn.com) (new-york style, Radix UI + CVA + tailwi
 - Icons: `lucide-react`
 - Full component docs available in `shad_llms.txt`
 
+## D3 in React
+
+D3 is used for data-driven visuals (e.g., `MazeCanvas.tsx`). The project uses `d3` (full package) with custom type declarations in `src/d3.d.ts` — do not install `@types/d3` or any `@types/d3-*` packages, they pull in `@types/node` which conflicts with Bun's TypeScript.
+
+**Pattern for canvas-based D3 visuals:**
+- All rendering and D3 logic lives inside a `useEffect` with a `[]` dependency array
+- Use `useRef<HTMLCanvasElement>` for canvas access — never touch the DOM outside `useEffect`
+- For interactive overlays (e.g., highlighted paths), use **two stacked canvases**: base canvas (drawn once) + overlay canvas (cleared and redrawn on interaction)
+- Attach interaction listeners to `window`, not the canvas element — more reliable across browsers and iOS
+- Add `touchstart` + `touchmove` with `{ passive: false }` and `e.preventDefault()` to suppress iOS scroll/zoom behavior
+- Handle `window.devicePixelRatio` for sharp rendering on retina/HiDPI displays: set `canvas.width = vw * dpr`, `canvas.height = vh * dpr`, `ctx.setTransform(dpr, 0, 0, dpr, 0, 0)`
+- Return cleanup from `useEffect` removing all `window` listeners
+
 ## CI
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on PRs:
