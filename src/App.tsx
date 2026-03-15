@@ -1,32 +1,58 @@
-import { useEffect, useState } from "react";
-import { HomePage } from "./pages/HomePage";
-import { ValstizdevumiPage } from "./pages/ValstizdevumiPage";
+import { MazeCanvas } from "./MazeCanvas";
+import { Router, Link, usePath } from "./router";
+import { About } from "./pages/About";
+import { Projects } from "./pages/Projects";
+import { Button } from "@/components/ui/button";
 
-function useRouter() {
-  const [path, setPath] = useState(window.location.pathname);
+function HomePage() {
+  return (
+    <>
+      <MazeCanvas />
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          pointerEvents: "none",
+          zIndex: 10,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "1.5rem",
+        }}
+      >
+        <nav
+          style={{
+            display: "flex",
+            gap: "1rem",
+            pointerEvents: "auto",
+          }}
+        >
+          <Button asChild size="lg" className="bg-black/70 hover:bg-black/90 text-white border border-white/20 backdrop-blur-sm text-lg tracking-wide">
+            <Link to="/about">About</Link>
+          </Button>
+          <Button asChild size="lg" className="bg-black/70 hover:bg-black/90 text-white border border-white/20 backdrop-blur-sm text-lg tracking-wide">
+            <Link to="/projects">Projects</Link>
+          </Button>
+        </nav>
+      </div>
+    </>
+  );
+}
 
-  useEffect(() => {
-    const handler = () => setPath(window.location.pathname);
-    window.addEventListener("popstate", handler);
-    return () => window.removeEventListener("popstate", handler);
-  }, []);
-
-  function navigate(to: string) {
-    window.history.pushState({}, "", to);
-    setPath(to);
-  }
-
-  return { path, navigate };
+function Routes() {
+  const path = usePath();
+  if (path === "/about") return <About />;
+  if (path === "/projects") return <Projects />;
+  return <HomePage />;
 }
 
 export function App() {
-  const { path, navigate } = useRouter();
-
-  if (path === "/valsts-izdevumi") {
-    return <ValstizdevumiPage navigate={navigate} />;
-  }
-
-  return <HomePage navigate={navigate} />;
+  return (
+    <Router>
+      <Routes />
+    </Router>
+  );
 }
 
 export default App;
