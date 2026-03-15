@@ -1,21 +1,28 @@
-# bun-react-tailwind-shadcn-template
+# filips.zarzeckis.lv
 
-To install dependencies:
+Personal website for experimenting with data visualizations. Built with Bun, React 19, TypeScript, Tailwind CSS v4, shadcn/ui, and D3.
+
+Live at **https://filips.zarzeckis.lv** · Deployed on Vercel.
+
+## Dev
 
 ```bash
 bun install
+bun run dev      # http://localhost:3000
 ```
 
-To start a development server:
+## Build & type check
 
 ```bash
-bun dev
+bun run build    # → dist/
+bunx tsc --noEmit
+bun test
 ```
 
-To run for production:
+## Stack
 
-```bash
-bun start
-```
-
-This project was created using `bun init` in bun v1.3.10. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+- **Runtime/bundler** — Bun
+- **UI** — React 19 + TypeScript
+- **Styling** — Tailwind CSS v4 + shadcn/ui (new-york)
+- **Visualizations** — D3
+- **Deployment** — Vercel (static SPA)
