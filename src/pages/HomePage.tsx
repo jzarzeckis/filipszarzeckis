@@ -1,10 +1,8 @@
 import type { CSSProperties } from "react";
+import { useNavigate } from "../router";
 
-interface HomePageProps {
-  navigate: (path: string) => void;
-}
-
-export function HomePage({ navigate }: HomePageProps) {
+export function HomePage() {
+  const navigate = useNavigate();
   const btnStyle: CSSProperties = {
     color: "#FFD700",
     background: "transparent",

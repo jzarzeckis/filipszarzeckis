@@ -1,8 +1,7 @@
-interface ValstizdevumiPageProps {
-  navigate: (path: string) => void;
-}
+import { useNavigate } from "../router";
 
-export function ValstizdevumiPage({ navigate }: ValstizdevumiPageProps) {
+export function ValstizdevumiPage() {
+  const navigate = useNavigate();
   return (
     <div
       style={{
