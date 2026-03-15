@@ -215,7 +215,9 @@ export function ValstizdevumiPage() {
     // ── Valsts budžets → VSAA (dotācija) ──────────────────────
     // Source: top portion of the Valsts bar's right edge
     // Target: bottom portion of the VSAA bar's left edge (below the VSAOI inflow)
-    const dotaciyaH    = (dotaciyaVal / valstsBudgetVal) * valstsBudgetH;
+    // dotācija is (dotaciyaVal / totalValstFlow) of the node, not (/ valstsBudgetVal)
+    // because Valsts handles 10 113 total: 1 612 dotācija + 8 501 non-soc spending
+    const dotaciyaH    = (dotaciyaVal / valstsBudgetIncome) * valstsBudgetH;
     const dotaciyaLink = {
       id:    "dotaciya",
       color: "#a8a8a8",
@@ -244,12 +246,17 @@ export function ValstizdevumiPage() {
     };
 
     // ── Valsts budžets → non-soc categories ───────────────────
-    // Right-edge stacking: dotācija occupies the top slice, categories below
+    // Right-edge stacking: dotācija takes the top slice; the remaining space
+    // (nonSocAvailH) is shared proportionally among non-soc categories.
+    // Their source heights are compressed so the total right edge = valstsBudgetH.
+    const nonSocAvailH   = valstsBudgetH - dotaciyaH;
+    // valstsBudgetVal = sum of non-soc spending = catTotal - socVal
     let   valstsToCatY   = valstsBudgetY0 + dotaciyaH;
     const nonSocCatNodes = catNodes.filter((c) => c.id !== "soc");
     const valstsToCatLinks = nonSocCatNodes.map((cat) => {
+      const srcH       = (cat.value / valstsBudgetVal) * nonSocAvailH;
       const sy0        = valstsToCatY;
-      const sy1        = sy0 + cat.h;
+      const sy1        = sy0 + srcH;
       valstsToCatY     = sy1;
       return {
         id:    cat.id,
