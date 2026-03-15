@@ -130,7 +130,7 @@ const result = await Bun.build({
   plugins: [plugin],
   minify: true,
   target: "browser",
-  sourcemap: "linked",
+  sourcemap: process.env.VERCEL_ENV === "production" ? "none" : "linked",
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
   },
