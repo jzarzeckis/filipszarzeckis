@@ -1,4 +1,5 @@
 import { useNavigate } from "../router";
+import { MazeCanvas } from "../MazeCanvas";
 
 export function ValstizdevumiPage() {
   const navigate = useNavigate();
@@ -14,9 +15,11 @@ export function ValstizdevumiPage() {
         gap: "1.5rem",
         color: "#FFD700",
         fontFamily: "inherit",
+        position: "relative",
       }}
     >
-      <h1 style={{ fontSize: "1.5rem", letterSpacing: "0.1em", margin: 0 }}>
+      <MazeCanvas />
+      <h1 style={{ fontSize: "1.5rem", letterSpacing: "0.1em", margin: 0, position: "relative", zIndex: 1 }}>
         Valsts izdevumi
       </h1>
       <button
@@ -30,6 +33,8 @@ export function ValstizdevumiPage() {
           letterSpacing: "0.08em",
           cursor: "pointer",
           fontFamily: "inherit",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         ← Atpakaļ
